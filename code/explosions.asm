@@ -22,83 +22,88 @@
 ******************************************************************************
 
 * Function: clear the lists of explosions.
-clear_explosions_code
-    li   r8, dust_explosion_addresses
-    clr  *r8
-    li   r9, diamond_explosion_addresses
-    clr  *r9
+* STATIC r10: the current pointer in the list of explosions.
+*             An explosion record contains:
+*                 word = explosion world address
+*                 word = replacement object
+clear_explosions
+    data explosions_workspace
+    data !
+
+!   li   r10, explosion_list
     rtwp
-
-* Function: apply the collected lists of explosions.
-apply_explosions_code
-    clr  r3                    ; Unused?
-    bl   @apply_explosions_list   ; Apply the list of explosions to dust.
-    data dust
-    data dust_explosion_addresses
-    bl   @apply_explosions_list   ; Apply the list of explosions to diamond.
-    data diamond
-    data diamond_explosion_addresses
-    rtwp
-
-* Subroutine: apply explosions at a given list of object addresses.
-* IN data: the explosion object (dust, dust,...).
-* IN data: the start address of the 0-terminated sequence of addresses.
-apply_explosions_list
-    mov  *r11+, r0             ; Get the explosion object.
-    mov  *r11+, r1             ; Get the start address.
-    mov  r11, r10              ; Save the return address.
-explosion_loop
-    mov  *r1+, r2              ; Get the address of the explosion.
-    jeq  explosion_exit
-    bl   @put_object           ; Replace the central object.
-    dec  r2                    ; Replace the left object.
-    bl   @put_object
-    inct r2                    ; Replace the right object.
-    bl   @put_object
-    ai   r2, >ffbf             ; Replace the top object.
-    bl   @put_object
-    dec  r2                    ; Replace the top-left object.
-    bl   @put_object
-    inct r2                    ; Replace the top-right object.
-    bl   @put_object
-    ai   r2, >007f             ; Replace the bottom object.
-    bl   @put_object
-    dec  r2                    ; Replace the bottom-left object.
-    bl   @put_object
-    inct r2                    ; Replace the bottom-right object.
-    bl   @put_object
-    jmp  explosion_loop
-explosion_exit
-    b    *r10                  ; Return from the subroutine.
-
-* Subroutine: replace any non-solid object at a given address by a given object.
-* IN r0: replacement object.
-* IN r2: address of the object to check.
-put_object
-    movb *r2, r3
-    ci   r3, solid
-    jeq  put_object_exit
-    movb r0, *r2
-
-put_object_exit
-    rt
 
 * Function: let the specified object explode to dust.
 * IN     r2: the address of the object to explode.
-* STATIC r8: the pointer of the list of dust explosions.
-explode_to_dust_code
-    mov  @calling_r2(r13), *r8+
-    clr  *r8
+* STATIC r10: the current pointer in the list of explosions.
+explode_to_dust
+    data explosions_workspace
+    data !
+
+!   mov  @calling_r2(r13), *r10+
+    li   r0, dust
+    mov  r0, *r10+
     blwp @queue_sound
-    data >0066
+    data explode_to_dust_sound
     rtwp
 
 * Function: let the specified object explode to diamond.
 * IN     r2: the address of the object to explode.
-* STATIC r8: the pointer of the list of diamond explosions.
-explode_to_diamond_code
-    mov  @calling_r2(r13), *r9+
-    clr  *r9
+* STATIC r10: the current pointer in the list of explosions.
+explode_to_diamond
+    data explosions_workspace
+    data !
+
+!   mov  @calling_r2(r13), *r10+
+    li   r0, diamond
+    mov  r0, *r10+
     blwp @queue_sound
-    data >004d
+    data explode_to_diamond_sound
     rtwp
+
+* Function: apply the collected lists of explosions.
+* STATIC r10: the current pointer in the list of explosions.
+apply_explosions
+    data explosions_workspace
+    data !
+
+!   li   r0, explosion_list    ; Get the start address.
+explosion_loop
+    c    r0, r10
+    jhe  explosion_exit
+    mov  *r0+, r1              ; Get the address of the explosion.
+    mov  *r0+, r2              ; Get the replacement object.
+    clr  r3                    ; Make sure the LSB of r3 is clear.
+    bl   @put_object           ; Replace the central object.
+    dec  r1                    ; Replace the left object.
+    bl   @put_object
+    inct r1                    ; Replace the right object.
+    bl   @put_object
+    ai   r1, >ffbf             ; Replace the top object.
+    bl   @put_object
+    dec  r1                    ; Replace the top-left object.
+    bl   @put_object
+    inct r1                    ; Replace the top-right object.
+    bl   @put_object
+    ai   r1, >007f             ; Replace the bottom object.
+    bl   @put_object
+    dec  r1                    ; Replace the bottom-left object.
+    bl   @put_object
+    inct r1                    ; Replace the bottom-right object.
+    bl   @put_object
+    jmp  explosion_loop
+
+explosion_exit
+    rtwp
+
+* Subroutine: replace any non-solid object at a given address by a given object.
+* IN r1: the address of the object to check.
+* IN r2: the replacement object.
+put_object
+    movb *r1, r3
+    ci   r3, solid
+    jeq  put_object_exit
+    movb r2, *r1
+
+put_object_exit
+    rt

@@ -21,61 +21,53 @@
 ******************************************************************************
 
 * Block: initialize the VDP registers, character patterns and colors.
-    li   r0, vdp_registers     ; Initialize the VDP registers.
-initialize_vdp_loop
-    movb *r0+, @vdpwa
-    ci   r0, vdp_registers_end
-    jne  initialize_vdp_loop
+* OUT r11: the high score.
+    blwp @vdp_write_registers
+    data vdp_r0 | >02          ; Mode:                     bitmap.
+    data vdp_r2 | >02          ; Screen image table:       >0800.
+    data vdp_r3 | >9f          ; Color table:              >2000, half-bitmap.
+    data vdp_r4 | >00          ; Pattern descriptor table: >0000, half-bitmap.
+    data vdp_r7 | >01          ; Background color:         black.
+    data >0000
 
-    clr  r0                    ; Write the character patterns.
-    li   r1, character_patterns
-    li   r2, character_patterns_length
-    blwp @vmbw
-    a    r2, r0                ; Write a copy of the character patterns.
-    blwp @vmbw
+    blwp @vdp_write_bytes      ; Write the character patterns.
+    data 0
+    data character_patterns
+    data character_patterns_length
 
-    li   r0, >2000             ; Write the character colors.
-    a    r2, r1
-    blwp @vmbw
-    a    r2, r0                ; Write a copy of the character colors.
-    blwp @vmbw
+    blwp @vdp_write_bytes      ; Write the character colors.
+    data >2000
+    data character_colors
+    data character_patterns_length
 
-    mov  r2, @>834a            ; Reverse the copy of the character patterns.
-    mov  r2, @>834c
-    blwp @gpllnk
-    data >003b
+    blwp @vdp_write_reversed_bytes ; Write the mirrored character patterns.
+    data >0000+character_patterns_length
+    data character_patterns
+    data character_patterns_length
 
-    li   r0, >0400             ; Load the standard character set (>200 bytes).
-    mov  r0, @>834a
-    blwp @gpllnk
-    data >0016
+    blwp @vdp_write_bytes      ; Write the mirrored character colors.
+    data >2000+character_patterns_length
+    data character_colors
+    data character_patterns_length
 
-    blwp @vdp_fill             ; Set the character colors to cyan.
+    blwp @vdp_write_large_character_patterns ; Write the large text character patterns.
+    data >0400
+    data >04b4
+
+    blwp @vdp_fill             ; Set the large text character colors to cyan.
     data >2400
     data >7000
     data >0200
 
-    li   r0, >05ff             ; Load the small capitals character set, shifted up 1 pixel.
-    mov  r0, @>834a
-    blwp @gpllnk
-    data >0018
+    blwp @vdp_write_standard_character_patterns ; Write the standard text character patterns.
+    data >0600
+    data >06B4
 
-    blwp @vdp_fill             ; Set the character colors to white.
+    blwp @vdp_fill             ; Set the standard text character colors to white.
     data >2600
     data >f000
     data >0200
 
-    li   r0, xf00a             ; Compute the checksum of the code. TODO: Remove.
-    clr  r1
-checksum_loop
-    a    *r0+, r1
-    ci   r0, xf00a + >0ff6
-    jne  checksum_loop
-
-    mov  r1, r1                ; Quit if the checksum is wrong.
-    jeq  checksum_ok
-    clr  r0
-    blwp *r0
-
-checksum_ok
     blwp @initialize_animation_speech_sound
+
+    clr  r11                   ; Clear the high score.

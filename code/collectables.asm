@@ -21,15 +21,18 @@
 ******************************************************************************
 
 * Function: account for collecting a diamond.
-* STATIC r4:  current number of bombs.
-* STATIC r5:  current number of diamonds.
-* STATIC r6:  required number of diamonds.
-* STATIC r7:  remaining time.
-* STATIC r8:  current score.
-* STATIC r9:  offset to the current world definition.
-* STATIC r10: number of lives.
-collect_diamond_code
-    inc  r5                    ; Increment the count.
+* STATIC r4:  the current number of bombs.
+* STATIC r5:  the current number of diamonds.
+* STATIC r6:  the required number of diamonds.
+* STATIC r7:  the remaining time.
+* STATIC r8:  the current score.
+* STATIC r9:  the current world number.
+* STATIC r10: the number of lives.
+collect_diamond
+    data collectables_workspace
+    data !
+
+!   inc  r5                    ; Increment the count.
     mov  r5, r0                ; Display the number.
     blwp @draw_decimal
     data >082a
@@ -40,57 +43,61 @@ collect_diamond_code
     data >0839
 
     blwp @queue_sound
-    data >0084
+    data collect_diamond_sound
     c    r5, r6                ; Check if we've reached the required number.
     jne  not_required_number_yet
-    li   r0, >0f87             ; Flash the screen to white.
-    movb r0, @vdpwa
-    swpb r0
-    movb r0, @vdpwa
+
+    .vdpwr 7, >0f              ; Flash the screen to white.
 
     blwp @queue_random_speech
-    data >002a
+    data collected_diamonds_phrases
     blwp @queue_sound
-    data >0000
+    data collected_diamonds_sound
 
 not_required_number_yet
     rtwp
 
 * Function: account for collecting a bomb.
-* STATIC r4:  current number of bombs.
-* STATIC r5:  current number of diamonds.
-* STATIC r6:  required number of diamonds.
-* STATIC r7:  remaining time.
-* STATIC r8:  current score.
-* STATIC r9:  offset to the current world definition.
-* STATIC r10: number of lives.
-collect_bomb_code
-    inc  r4                    ; Increment the count.
+* STATIC r4:  the current number of bombs.
+* STATIC r5:  the current number of diamonds.
+* STATIC r6:  the required number of diamonds.
+* STATIC r7:  the remaining time.
+* STATIC r8:  the current score.
+* STATIC r9:  the current world number.
+* STATIC r10: the number of lives.
+collect_bomb
+    data collectables_workspace
+    data !
+
+!   inc  r4                    ; Increment the count.
     mov  r4, r0                ; Display the number.
     blwp @draw_decimal
     data >0825
     blwp @queue_sound
-    data >007d
+    data collect_bomb_sound
     rtwp
 
 * Function: account for dropping a bomb.
 *           Skip the next two instruction words if we can't drop a bomb.
-* STATIC r4:  current number of bombs.
-* STATIC r5:  current number of diamonds.
-* STATIC r6:  required number of diamonds.
-* STATIC r7:  remaining time.
-* STATIC r8:  current score.
-* STATIC r9:  offset to the current world definition.
-* STATIC r10: number of lives.
-drop_bomb_code
-    mov  r4, r4                ; Do we have any bombs?
+* STATIC r4:  the current number of bombs.
+* STATIC r5:  the current number of diamonds.
+* STATIC r6:  the required number of diamonds.
+* STATIC r7:  the remaining time.
+* STATIC r8:  the current score.
+* STATIC r9:  the current world number.
+* STATIC r10: the number of lives.
+drop_bomb
+    data collectables_workspace
+    data !
+
+!   mov  r4, r4                ; Do we have any bombs?
     jeq  no_bombs
     dec  r4                    ; Decrement the count.
     mov  r4, r0                ; Display the number.
     blwp @draw_decimal
     data >0825
     blwp @queue_sound
-    data >0073
+    data drop_bomb_sound
     rtwp
 
 no_bombs

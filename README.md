@@ -30,18 +30,17 @@ monsters, and lava.
 ## Requirements
 
 * TI-99/4A home computer.
-* Editor/Assembler module.
 * 32K memory expansion.
+* Editor/Assembler module (for the disk version).
 
 or:
 
-* An emulator for the TI-99/4A, like Mame.
+* An emulator for the TI-99/4A, such as Mame.
 
 ## Building
 
 You need to have the [xdt99](https://github.com/endlos99/xdt99)
-cross-development tools installed, for the `xas99` assembler and the `xdm99`
-disk manager.
+cross-development tools installed, for the `xas99` assembler.
 
 On Linux, you can run the build script:
 
@@ -49,26 +48,22 @@ On Linux, you can run the build script:
 
 Alternatively, you can run its commands manually.
 
-You'll then have the floppy disk image `out/rock.dsk`.
+You'll then have the cartridge image `out/RockRunner.rpk`.
 
 ## Running
 
 The easiest way is to use the Mame emulator.
 
-On Linux, you can run the script to launch Mame with the proper options.
-You still need the provide the path to your Editor/Assembler cartridge
-image:
+On Linux, you can run the script to launch Mame with the proper options:
 
-    ./run.sh EditorAssembler.rpk
+    ./run.sh
 
-Alternatively, you can run the Mamme command manually.
+Alternatively, you can run the Mame command manually.
 
 Once Mame is running and showing the TI-99/4A launch screen:
 
 1. Press any key.
-2. Press `2` for "Editor/Assembler".
-3. Press `5` for "Run program file".
-4. Enter `DSK1.ROCK` to run the executable from the mounted floppy.
+2. Press `2` for "Rock Runner"
 
 The game then starts. You can select a screen with the joystick and `fire`
 to start playing.
@@ -92,6 +87,14 @@ to disassemble the code. For the first time, I could see the source code of
 my own program in full -- and so can you now. With all-new documentation,
 the code is holding up pretty nicely. It can be a fun example of hand-written
 assembly code for the TI-99/4A.
+
+## Versions
+
+You can check out the following git tags:
+
+* `master` Version that creates an image of a Rock Runner cartridge.
+* `v1.0` Version that recreates an image of the original Rock Runner floppy
+  disk.
 
 ## License
 

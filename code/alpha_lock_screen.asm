@@ -34,8 +34,9 @@ alpha_lock_screen
     data >0000
     data >0300
 
-    blwp @draw_title           ; Draw the game title.
+    blwp @draw_text            ; Draw the game title.
     data >08c7
+    data title_definitions
 
     li   r0, >0a47             ; Display a warning.
     li   r1, alpha_lock_string

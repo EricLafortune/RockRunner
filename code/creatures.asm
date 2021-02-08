@@ -21,10 +21,50 @@
 * at a time) and explosions.
 ******************************************************************************
 
+* Subroutine: initialize the creatures in the world.
+initialize_creatures
+    data creatures_workspace
+    data !
+
+!   li   r2, creature_addresses
+    bl   @collect_creature     ; Find all monsters.
+    data monster
+    bl   @collect_creature     ; Find all plain butterflies.
+    data plain_butterfly
+    bl   @collect_creature     ; Find all diamond butterflies.
+    data diamond_butterfly
+    rtwp
+
+* Subroutine: collect all addresses of the specified creature in the world in
+*             a 0-terminated list. Also reset their corresponding directions.
+* IN     data:  the creature to look for.
+* IN     world: the world that contains the creatures.
+* STATIC r2:    the list pointer.
+collect_creature
+    mov  *r11+, r0             ; Get the creature object.
+    li   r1, world + world_width ; Start looking after the border of the world.
+
+collect_creature_addresses_loop
+    cb   r0, *r1               ; Is it the creature we're looking for?
+    jne  not_specified_creature
+    clr  @>0100(r2)            ; Add the creature direction in the list.
+    mov  r1, *r2+              ; Add the creature address to the list.
+not_specified_creature
+    inc  r1                    ; Loop over all objects of the world.
+    ci   r1, world + world_size - world_width
+    jne  collect_creature_addresses_loop
+
+collect_creature_addresses_loop_exit
+    clr  *r2+                  ; Add the terminating zero.
+    rt
+
 * Function: move the creatures in the world (phase 1: walking half-way
 *           across two cells in the world, by one character on the screen).
-move_creatures_phase1_code
-    clr  r0
+move_creatures_phase1
+    data creatures_workspace
+    data !
+
+!   clr  r0
     li   r1, creature_addresses ; Start with the monsters.
 
 * Move monsters.
@@ -54,7 +94,7 @@ move_monster_loop
     dec  r3                    ; Have we tried all four directions?
     jne  move_monster_loop
 
-    li   r4, >0020             ; Don't move at all.
+    li   r4, 8                 ; Don't move at all.
     mov  r4, @>0100(r1)
 
     inct r1                    ; Continue with the next monster.
@@ -110,7 +150,7 @@ move_plain_butterfly_loop
     dec  r3                    ; Have we tried all four directions?
     jne  move_plain_butterfly_loop
 
-    li   r4, >0020             ; Don't move at all.
+    li   r4, 8                 ; Don't move at all.
     mov  r4, @>0100(r1)
 
     inct r1                    ; Continue with the next butterfly.
@@ -166,7 +206,7 @@ move_diamond_butterfly_loop
     dec  r3                    ; Have we tried all four directions?
     jne  move_diamond_butterfly_loop
 
-    li   r4, >0020             ; Don't move at all.
+    li   r4, 8                 ; Don't move at all.
     mov  r4, @>0100(r1)
 
     inct r1                    ; Continue with the next butterfly.
@@ -193,8 +233,11 @@ move_diamond_butterflies_loop_exit
 
 * Function: move the creatures in the world (phase 2: walking all the way
 *           to the new cell, by one character on the screen).
-move_creatures_phase2_code
-    clr  r0
+move_creatures_phase2
+    data creatures_workspace
+    data !
+
+!   clr  r0
     li   r1, creature_addresses
     bl   @move_creature_list_phase2
     data >6800

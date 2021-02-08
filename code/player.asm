@@ -21,12 +21,83 @@
 * (one character at a time), dropping bombs.
 ******************************************************************************
 
+; The 4 joystick CRU bits (inverted):
+;     >1 = left
+;     >2 = right
+;     >4 = down
+;     >8 = up
+joystick_cru_to_direction
+;      byte >00 ; Impossible.
+;      byte >00
+;      byte >00
+;      byte >00
+;      byte >00
+    byte >14 ; Up + right = right.
+    byte >1e ; Up + left  = left.
+    byte >00 ; Up.
+    byte >00
+    byte >14 ; Down + right = right.
+    byte >1e ; Down + left  = left.
+    byte >0a ; Down.
+    byte >00
+    byte >14 ; Right.
+    byte >1e ; Left.
+    byte >ff ; None.
+
+    byte >00
+    data >0000
+    data >0000
+
+* Offests in the records below.
+world_offset    equ 0
+y_delta         equ 2
+x_delta         equ 4
+leaving_object  equ 6
+entering_object equ 7
+arrived_object  equ 8
+
+joystick_direction_to
+    data -world_width ; Up.
+    data -1
+    data 0
+    byte >89
+    byte >87
+    byte >80
+    byte >00
+
+    data world_width  ; Down.
+    data 1
+    data 0
+    byte >87
+    byte >89
+    byte >80
+    byte >00
+
+    data 1            ; Right.
+    data 0
+    data 1
+    byte >95
+    byte >9b
+    byte >90
+    byte >00
+
+    data -1           ; Left.
+    data 0
+    data -1
+    byte >ab
+    byte >a5
+    byte >a0
+    byte >00
+
 * Function:  move the player to his starting position, while drawing the screen.
 * IN         r0: the player address in the world.
 * STATIC OUT r8: the player y position.
 * STATIC OUT r9: the player x position.
-initial_scroll_code
-    blwp @initialize_screen_position
+initial_scroll
+    data player_workspace
+    data !
+
+!   blwp @initialize_screen_position
 
     mov  *r13, r6              ; Get the player address.
     ai   r6, >e000             ; Compute the player offset.
@@ -46,12 +117,12 @@ initial_move_left
     dec  r9
 
     blwp @play_sounds
-    data >0000
+    data initial_scroll_sound1
 
     blwp @draw_world           ; Draw the world in phase 1.
 
     blwp @play_sounds
-    data >0009
+    data initial_scroll_sound2
 
     blwp @draw_world           ; Draw the world in phase 2.
     jmp  initial_horizontal_move_loop
@@ -65,12 +136,12 @@ initial_move_down
 initial_move_up
     dec  r8
     blwp @play_sounds
-    data >0000
+    data initial_scroll_sound1
 
     blwp @draw_world           ; Draw the world in phase 1.
 
     blwp @play_sounds
-    data >0009
+    data initial_scroll_sound2
 
     blwp @draw_world           ; Draw the world in phase 2.
     jmp  initial_vertical_move_loop
@@ -78,13 +149,24 @@ initial_move_up
 initial_scroll_loop_exit
     rtwp
 
-* Function: initialize the screen position.
-* STATIC r0: screen y position.
-* STATIC r1: screen x position.
-initialize_screen_position_code
-    li   r0, >000a
-    li   r1, >0018
-    rtwp
+* Switch table for encountered objects.
+switch_move_to_object
+    data case_move_to_open_space  ; Empty.
+    data case_move_to_bomb        ; Bomb.
+    data case_move_to_bomb        ; Lit bomb0.
+    data case_move_to_bomb        ; Lit bomb1.
+    data case_move_to_bomb        ; Lit bomb2.
+    data case_move_to_diamond     ; Diamond.
+    data case_move_to_open_space  ; Soft.
+    data case_dont_move           ; Lava.
+    data case_dont_move           ; Brick.
+    data case_push_rock           ; Rock.
+    data case_dont_move           ; Concrete.
+    data case_dont_move           ; Solid.
+    data case_dont_move           ; Dust.
+    data case_explode             ; Monster.
+    data case_explode             ; Plain butterfly.
+    data case_explode             ; Diamond butterfly.
 
 * Function: move the player in the world (phase 1: walking half-way
 *           across two cells in the world, by one character on the screen).
@@ -95,8 +177,11 @@ initialize_screen_position_code
 * STATIC     r8:  the player y position.
 * STATIC     r9:  the player x position.
 * STATIC     r10: the joystick number (CRU bits).
-move_player_phase1_code
-    mov  r8, r1                ; Compute the player object address.
+move_player_phase1
+    data player_workspace
+    data !
+
+!   mov  r8, r1                ; Compute the player object address.
     sla  r1, 6
     a    r9, r1
     ai   r1, world
@@ -110,7 +195,7 @@ move_player_phase1_code
     jlt  dead
     clr  r7
     blwp @queue_random_speech  ; Queue a random speech phrase.
-    data >0036
+    data died_phrases
 dead
     rtwp
 
@@ -149,7 +234,7 @@ case_push_rock
     movb r0, *r2
     s    r4, r2                ; Don't change the destination.
     blwp @queue_sound
-    data >0090
+    data push_rock_sound
     jmp  case_move_to_open_space
 
 case_explode
@@ -179,8 +264,11 @@ finalize_player_motion
 * STATIC r7:  a countdown since the last move.
 * STATIC r8:  the player y position.
 * STATIC r9:  the player x position.
-move_player_phase2_code
-    c    r1, r2                ; Are we moving?
+move_player_phase2
+    data player_workspace
+    data !
+
+!   c    r1, r2                ; Are we moving?
     jeq  player_standing
 
     clr  r0                    ; Is the fire button depressed?
@@ -206,7 +294,7 @@ player_standing
     movb r0, *r2
     li   r7, >003d             ; Queue a random speech phrase.
     blwp @queue_random_speech
-    data >000a
+    data not_moving_phrases
 
 player_not_standing_long
     rtwp

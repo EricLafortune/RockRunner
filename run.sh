@@ -1,28 +1,20 @@
 #!/bin/sh
 #
-# This script launches Mame with the TI-99/$A, the Editor/Assembler cartridge,
-# the 32K memory expansion, the speech synthesizer, the floppy drive, and the
-# Rock Runner floppy disk mounted.
+# This script launches Mame with the TI-99/4A, the 32K memory expansion,
+# the speech synthesizer, and the Rock Runner cartridge mounted.
 #
-# You can  then start the game from the Editor/Assembler module:
+# You can  then start the game:
 #   Press any key
-#   2. Editor/Assembler
-#   5. Load program file
-#      DSK1.ROCK
+#   2. Rock Runner
+#
+# Useful Mame options for debugging:
+#   -nomouse -debug
 
-RPK=${1:-EditorAssembler.rpk}
-DSK=out/rock.dsk
+RPK=out/RockRunner.rpk
 
 if [ ! -f $RPK ]
 then
-  echo "Can't find the Editor/Assembler cartridge image $RPK"
-  echo "Please specify the correct path as an argument"
-  exit 1
-fi
-
-if [ ! -f $DSK ]
-then
-  echo "Can't find the Rock Runner floppy disk image $DSK"
+  echo "Can't find the cartridge image $RPK"
   echo "Please build it with the build.sh script"
   exit 1
 fi
@@ -31,6 +23,4 @@ mame ti99_4a \
   -ioport peb \
   -ioport:peb:slot2 32kmem \
   -ioport:peb:slot3 speech \
-  -ioport:peb:slot8 tifdc \
-  -cart1 $RPK \
-  -flop1 $DSK
+  -cart1 $RPK

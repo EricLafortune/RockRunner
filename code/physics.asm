@@ -21,116 +21,128 @@
 * objects, lit and exploding bombs, expanding lava.
 ******************************************************************************
 
+* Switch table for the objects in the world.
+switch_world_object
+    data world_loop            ; Empty.
+    data case_bomb             ; Bomb.
+    data case_lit_bomb0        ; Lit bomb0.
+    data case_lit_bomb1        ; Lit bomb1.
+    data case_lit_bomb2        ; Lit bomb2.
+    data case_diamond          ; Diamond.
+    data world_loop            ; Soft.
+    data case_lava             ; Lava.
+    data world_loop            ; Brick.
+    data case_rock             ; Rock.
+    data world_loop            ; Concrete.
+    data case_solid            ; Solid.
+    data case_clear            ; Dust.
+    data world_loop            ; Monster.
+    data world_loop            ; Plain butterfly.
+    data world_loop            ; Diamond butterfly.
+    data world_loop            ; Player front.
+    data world_loop            ; Player front walking.
+    data world_loop            ; Player right.
+    data world_loop            ; Player right walking.
+    data world_loop            ; Player left.
+    data world_loop            ; Player left walking.
+    data case_blink            ; Player front blinking.
+
+direction_offsets
+    data 1                     ; Right.
+    data -world_width          ; Up.
+    data -1                    ; Left.
+    data world_width           ; Down.
+    data 0                     ; None.
+
 * Function: perform the actions of all objects in the world.
-apply_physics_code
-    li   r1, world + world_width
-    li   r4, falling_bomb_addresses
-    li   r5, falling_lit_bomb1_addresses
-    li   r6, falling_lit_bomb2_addresses
-    li   r7, falling_diamond_addresses
-    li   r8, falling_rock_addresses
-    li   r10, world_loop
+* OUT r8: the current pointer in the falling object list.
+apply_physics
+    data physics_workspace
+    data !
+
+!   li   r8, falling_object_list ; Start collecting falling objects.
+
+    li   r1, world + world_width ; Loop over all world cells (starting with the second row).
+    li   r11, world_loop       ; We can return to the world loop from each case.
 
 world_loop
-    movb *r1+, r2              ; Switch.
+    movb *r1+, r2              ; Switch on the object in the cell.
     srl  r2, 10
     mov  @switch_world_object(r2), r0
     b    *r0
 
-world_loop_test
-    ci   r1, world + world_size - world_width
-    jl   world_loop
+* Switch cases.
+case_solid
+    ci   r1, world + world_size - world_width ; Loop until we've checked all cells (skipping the last row).
+    jle   world_loop
 
-    clr  *r4                   ; Set the terminating zeros for the lists of falling objects.
-    clr  *r5
-    clr  *r6
-    clr  *r7
-    clr  *r8
+    ; Let all falling objects fall halfway.
+    li   r0, falling_object_list ; Loop over all falling objects.
+falling_object_loop
+    c    r0, r8
+    jhe  falling_object_loop_exit
+    mov  *r0+, r1              ; Get the falling object's address (+1 actually).
+    mov  *r0+, r2              ; Get the falling object.
 
-    bl   @let_objects_fall
-    data falling_bomb_addresses
-    data >0709
-    bl   @let_objects_fall
-    data falling_lit_bomb1_addresses
-    data >1719
-    bl   @let_objects_fall
-    data falling_lit_bomb2_addresses
-    data >1f21
-    bl   @let_objects_fall
-    data falling_diamond_addresses
-    data >2729
-    bl   @let_objects_fall
-    data falling_rock_addresses
-    data >4749
+    ai   r2, >ff00             ; Put the leaving object.
+    movb r2, @-1(r1)
+
+    ai   r2, >0200             ; Put the entering object.
+    movb r2, @world_width-1(r1)
+
+    jmp  falling_object_loop
+
+falling_object_loop_exit
     rtwp
 
-* Subroutine: let the specified list of objects fall halfway.
-* IN data (word): the address of te object adress (+1) list.
-* IN data (byte): the leaving falling object to be written.
-* IN data (byte): the entering falling object to be written.
-let_objects_fall
-    mov  *r11+, r0
-    movb *r11+, r1
-    movb *r11+, r2
-
-fall_object_loop
-    mov  *r0+, r3
-    jeq  fall_object_loop_exit
-    movb r1, @-1(r3)
-    movb r2, @world_width-1(r3)
-    jmp  fall_object_loop
-
-fall_object_loop_exit
-    rt
-
-* Switch cases.
 case_bomb
-    bl   @skip_next_if_empty_below ; Is the cell below the bomb empty?
-    mov  r1, *r4+              ; Put the address in the list of falling bombs.
-    b    *r10
+    movb @world_width-1(r1), r0 ; Is the cell below the bomb empty?
+    jne  !
+    mov  r1, *r8+              ; Remember the falling bomb's address.
+    li   r2, bomb
+    mov  r2, *r8+              ; Remember the bomb itself.
+!   rt
 
 case_lit_bomb0
     li   r2, lit_bomb1         ; Further age the lit bomb 0.
     movb r2, @-1(r1)
-    bl   @skip_next_if_empty_below ; Is the cell below the lit bomb empty?
-    mov  r1, *r5+                  ; Put the address in the list of falling lit bombs 1.
-    b    *r10
+    movb @world_width-1(r1), r0 ; Is the cell below the bomb empty?
+    jne  !
+    mov  r1, *r8+              ; Remember the falling bomb's address.
+    mov  r2, *r8+              ; Remember the bomb itself.
+!   rt
 
 case_lit_bomb1
     li   r2, lit_bomb2         ; Further age the lit bomb 1.
     movb r2, @-1(r1)
-    bl   @skip_next_if_empty_below ; Is the cell below the lit bomb empty?
-    mov  r1, *r6+                  ; Put the address in the list of falling lit bombs 2.
-    b    *r10
+    movb @world_width-1(r1), r0 ; Is the cell below the bomb empty?
+    jne  !
+    mov  r1, *r8+              ; Remember the falling bomb's address.
+    mov  r2, *r8+              ; Remember the bomb itself.
+!   rt
 
 case_lit_bomb2
     mov  r1, r2                ; Let the lit bomb 2 explode.
     dec  r2
     blwp @explode_to_dust
-    b    *r10
-
-case_diamond
-    bl   @skip_next_if_empty_below ; Is the cell below the diamond empty?
-    mov  r1, *r7+                  ; Put the address in the list of falling diamonds.
-    b    *r10
-
-case_rock
-    bl   @skip_next_if_empty_below ; Is the cell below the rock empty?
-    mov  r1, *r8+                  ; Put the address in the list of falling rocks.
-    b    *r10
-
-* Subroutine: skip the next instruction if the object below the specified object is empty.
-* IN  r1: the address of the object + 1.
-* OUT r2: the object below.
-skip_next_if_empty_below
-    movb @>003f(r1), r2
-    jeq  skip_next_if_empty_below_exit
-    inct r11
-
-skip_next_if_empty_below_exit
     rt
 
-* Swith cases continued.
+case_diamond
+    movb @world_width-1(r1), r0 ; Is the cell below the diamond empty?
+    jne  !
+    mov  r1, *r8+              ; Remember the falling diamond's address.
+    li   r2, diamond
+    mov  r2, *r8+              ; Remember the diamond itself.
+!   rt
+
+case_rock
+    movb @world_width-1(r1), r0 ; Is the cell below the rock empty?
+    jne  !
+    mov  r1, *r8+              ; Remember the falling rock's address.
+    li   r2, rock
+    mov  r2, *r8+              ; Remember the rock itself.
+!   rt
+
 case_lava
     a    r1, r9                ; Pick a random direction.
     mov  r9, r2
@@ -140,74 +152,57 @@ case_lava
     mov  @direction_offsets(r2), r2
     a    r1, r2
     dec  r2
-    li   r3, concrete          ; Is the cell in that direction soft?
-    cb   *r2, r3
+    li   r3, concrete
+    cb   *r2, r3               ; Is the cell in that direction soft?
     jhe  dont_expand_lava
     li   r3, lava              ; Put lava in it.
     movb r3, *r2
 dont_expand_lava
     blwp @play_lava_sound
-    b    *r10
+    rt
 
 case_clear
     clr  r2                    ; Clear the object in the world.
     movb r2, @-1(r1)
-    b    *r10
+    rt
 
 case_blink
     li   r2, player_front      ; Return to the regular player object.
     movb r2, @-1(r1)
-    b    *r10
+    rt
 
-* Function: land all falling objects.
-land_falling_objects_code
-    clr  r0                    ; The clear trail.
-    bl   @land_objects         ; Land all falling bombs.
-    data falling_bomb_addresses
-    data bomb
-    bl   @land_objects         ; Land all falling lit bombs 1.
-    data falling_lit_bomb1_addresses
-    data lit_bomb1
-    bl   @land_objects         ; Land all falling lit bombs 2.
-    data falling_lit_bomb2_addresses
-    data lit_bomb2
-    bl   @land_objects         ; Land all falling diamonds.
-    data falling_diamond_addresses
-    data diamond
-    bl   @land_objects         ; Land all falling rocks.
-    data falling_rock_addresses
-    data rock
-    rtwp
+* Function: let all falling objects land.
+* IN r8: the current pointer in the falling object list.
+land_falling_objects
+    data physics_workspace
+    data !
 
-* Subroutine: land the specified falling objects.
-* IN     data: the 0-terminated list of addresses of failling objects.
-* IN     data: the eventual landed object.
-* STATIC r0:
-land_objects
-    mov  *r11+, r1             ; Get the list of addresses.
-    mov  *r11+, r3             ; Get the landed object.
+!   li   r0, falling_object_list ; Loop over all falling objects.
+    clr  r1                    ; The clear trailing object.
+landing_object_loop
+    c    r0, r8
+    jhe  landing_object_loop_exit
+    mov  *r0+, r2              ; Get the falling object's address (+1 actually).
+    mov  *r0+, r3              ; Get the falling object.
 
-land_object_loop
-    mov  *r1+, r2              ; Get the falling object address.
-    jeq  land_object_loop_exit ; Didn't we get to the end of the list?
-    movb r0, @-1(r2)           ; Clear the leaving falling object.
-    movb r3, @world_width-1(r2) ; Set the landed falling object.
+    movb r1, @-1(r2)           ; Clear the trailing cell.
+    movb r3, @world_width-1(r2) ; Put the landing object.
+
     ai   r2, 2*world_width-1   ; Get the object on which the object has landed.
-    movb *r2, r4
-    jeq  land_dont_explode     ; Is it empty?
+    movb *r2, r3
+    jeq  landing_object_loop   ; Is it empty?
     blwp @queue_sound
-    data >0097
-    ci   r4, monster           ; Is it a creature?
-    jl   land_dont_explode
-    ci   r4, >7500             ; Is it a diamond creature?
+    data land_object_sound
+    ci   r3, monster           ; Is it a creature?
+    jl   landing_object_loop
+    ci   r3, diamond_butterfly - >0300 ; Is it a diamond creature?
     jhe  land_explode_to_diamond
 land_explode_to_dust
     blwp @explode_to_dust
-    jmp  land_dont_explode
+    jmp  landing_object_loop
 land_explode_to_diamond
     blwp @explode_to_diamond
-land_dont_explode
-    jmp  land_object_loop
+    jmp  landing_object_loop
 
-land_object_loop_exit
-    rt
+landing_object_loop_exit
+    rtwp

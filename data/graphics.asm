@@ -17,13 +17,142 @@
 * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 ******************************************************************************
-* Graphics definiitions: character patterns and colors.
+* Graphics definitions: objects -> characters -> patterns and colors.
 ******************************************************************************
 
 heart_character equ >2900
 
+* Offsets in the records below.
+leaving  equ 0
+entering equ 1
+
+* Animated creature objects (indexing in the object characxter table below).
+moving_monster_objects
+    data >656b                    ; Right.
+    data >6967                    ; Up.
+    data >6b65                    ; Left.
+    data >6769                    ; Down.
+
+moving_plain_butterfly_objects
+    data >6d73                    ; Right.
+    data >716f                    ; Up.
+    data >736d                    ; Left.
+    data >6f71                    ; Down.
+
+moving_diamond_butterfly_objects
+    data >757b                    ; Right.
+    data >7977                    ; Up.
+    data >7b75                    ; Left.
+    data >7779                    ; Down.
+
+* Offets in the object character records below. The 2x2 charqcters are stored
+* as a sequence of bytes
+*     top_left bottom_left >00 top_right bottom_right
+* to allow reusing the same sequence with different offsets for scrolled
+* versions of the object.
+top_left     equ 0
+bottom_left  equ 1
+top_right    equ 3
+bottom_right equ 4
+
+* Characters that correspond to the objects.
+object_characters
+    data >0000 ; Empty.
+    data >0000
+    data >0000
+    data >0000
+    data >0102 ; Bomb.
+    data >0003
+    data >0400
+    data >0000
+    data >0502 ; Lit bomb0.
+    data >0006
+    data >0400
+    data >0000
+    data >3002 ; Lit bomb1.
+    data >002f
+    data >0400
+    data >0000
+    data >0502 ; Lit bomb2.
+    data >0006
+    data >0400
+    data >0000
+    data >0708 ; Diamond.
+    data >0031
+    data >3200
+    data >0000
+    data >0933 ; Soft.
+    data >0009
+    data >3300
+    data >0000
+    data >0a0a ; Lava.
+    data >000a
+    data >0a00
+    data >0000
+    data >0b0b ; Brick.
+    data >000b
+    data >0b00
+    data >0000
+    data >0c0d ; Rock.
+    data >000e
+    data >0f00
+    data >0000
+    data >1010 ; Concrete.
+    data >003a
+    data >3a00
+    data >0000
+    data >1111 ; Solid.
+    data >0011
+    data >1100
+    data >0000
+    data >1213 ; Dust.
+    data >003c
+    data >3d00
+    data >0000
+    data >1415 ; Monster.
+    data >003e
+    data >3f00
+    data >0000
+    data >1617 ; Plain butterfly.
+    data >0040
+    data >4100
+    data >0000
+    data >1819 ; Diamond butterfly.
+    data >0042
+    data >4300
+    data >0000
+    data >1a1b ; Player front.
+    data >0044
+    data >4500
+    data >0000
+    data >1a1c ; Player front walking.
+    data >0044
+    data >1d00
+    data >0000
+    data >1e1f ; Player right.
+    data >0020
+    data >2100
+    data >0000
+    data >1e22 ; Player right walking.
+    data >0020
+    data >2300
+    data >0000
+    data >4a4b ; Player left.
+    data >0048
+    data >4900
+    data >0000
+    data >4a4d ; Player left walking.
+    data >0048
+    data >4c00
+    data >0000
+    data >241b ; Player front blinking.
+    data >004e
+    data >4500
+    data >0000
+
 character_patterns_length equ >0150
 
+* Patterns that define the characters.
 character_patterns
     byte :00000000 ; Empty.
     byte :00000000
@@ -403,6 +532,17 @@ lava_pattern1
     byte :00111000
     byte :00010000
 
+lava_pattern2
+    byte :00000000 ; Animated lava.
+    byte :01000100
+    byte :00001110
+    byte :00000100
+    byte :00000000
+    byte :00100010
+    byte :01110000
+    byte :00100000
+
+* Colors that define the characters.
 character_colors
     byte >00 ; Empty.
     byte >00

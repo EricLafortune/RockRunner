@@ -20,6 +20,10 @@
 * This file includes all files with individual world definitions.
 ******************************************************************************
 
+    ; We'll package the worlds in cartridge GROM (2 x 8K @ >6000).
+    aorg >6000
+    save >6000, >a000
+
 ; A world definition starts with a header (that overlaps with the first bytes
 ; of the border).
 ;     word = magic.
@@ -46,27 +50,18 @@ magic equ >454c
 ;     e = plain butterfly.
 ;     f = diamond butterfly.
 
-;world_definitions
-w0
-    save w0, w0 + >1000 ; Reconstruct the original binary.
     copy "a.asm"
     copy "b.asm"
     copy "c.asm"
     copy "d.asm"
-w1
-    save w1, w1 + >1000
     copy "e.asm"
     copy "f.asm"
     copy "g.asm"
     copy "h.asm"
-w2
-    save w2, w2 + >1000
     copy "i.asm"
     copy "j.asm"
     copy "k.asm"
     copy "l.asm"
-w3
-    save w3, w3 + >1000
     copy "m.asm"
     copy "n.asm"
     copy "o.asm"

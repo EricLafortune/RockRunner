@@ -23,34 +23,24 @@
 * Block: draw the title screen and handle the input
 *        (joystick up/down/fire, quit).
 * IN @high_score: the global high score.
-* OUT        r9:  the selected world definition address.
+* OUT        r10: the selected world number.
+* STATIC     r11: the high score.
 * OUT player r10: the selected joystick number (CRU bits).
 
 * Draw the title and the text lines.
-    blwp @draw_title           ; Draw the game title.
+    blwp @draw_text            ; Draw the game title.
     data >0807
+    data title_definitions
 
-    li   r0, >0942             ; Initialize the other lines.
-    li   r1, title_screen_strings
-    li   r3, title_screen_text_definitions
+    blwp @draw_text            ; Display the help text.
+    data >0942
+    data title_screen_text_definitions
 
-title_lines_loop
-    movb *r3+, r2
-    srl  r2, 8
-    blwp @vmbw
-    a    r2, r1                ; Increment the CPU source address.
-    movb *r3+, r2
-    jeq  title_lines_loop_exit
-    srl  r2, 8
-    a    r2, r0                ; Increment the VDP destination address.
-    jmp  title_lines_loop
-
-title_lines_loop_exit
-    mov  @high_score, r0       ; Display the high score.
+    mov  r11, r0               ; Display the high score.
     blwp @draw_decimal
     data >0a76
     li   r8, >0607             ; Initialize the joystick numbers (CRU bits).
-    clr  r9                    ; Reset the selected world.
+    clr  r10                   ; Reset the selected world.
 
 * Check for input.
 title_screen_loop
@@ -62,20 +52,28 @@ title_screen_loop
     jmp  title_check_quit
 
 title_change_world
-    li   r1, >0180
+    li   r1, >0180             ; Compute the new world number.
     sb   r0, r1
-    sla  r1, 3
-    a    r9, r1
-    mov  @world_definitions(r1), r0
-    ci   r0, magic
+    sra  r1, 7
+    a    r10, r1
+
+    mov  r1, r0                ; Compute the world definition GROM address.
+    sla  r0, grom_world_definition_size_shift
+    ai   r0, grom_world_definitions
+
+    .grmwa r0                  ; Check the magic header value.
+    .grmrd r0
+    ci   r0, magic             ; Is it a valid world definition?
     jne  title_check_quit
-    mov  r1, r9                ; Remember the world.
-    li   r0, >0ab3             ; Write the world number.
-    srl  r1, 2
+
+    mov  r1, r10               ; Remember the new world number.
+
+    li   r0, >0ab3             ; Display the new world number.
+    sla  r1, 8
     ai   r1, >a100
     blwp @vsbw
     blwp @play_sounds
-    data >0012
+    data select_world_sound
 
 title_check_quit
     li   r12, >0024            ; Is quit depressed?

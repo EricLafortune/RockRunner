@@ -53,164 +53,58 @@ player_left           equ >a000
 player_left_walking   equ >a800
 player_front_blinking equ >b000
 
-* The global memory layout.
-world_definitions           equ >a000 ; Part of the program data; must be defined here.
+* The GROM layout.
+grom_world_definitions            equ >6000 ; The compressed world definitions in GROM.
+grom_world_definition_size        equ >0400 ; The size of a compressed world definition.
+grom_world_definition_size_shift  equ 10    ; The multiplicative shift of the size.
+
+* The VDP RAM layout.
+
+vdp_pattern_table equ >0000 ; 256 * 8 bytes with bitmap patterns.
+vdp_color_table   equ >2000 ; 256 * 8 bytes with corresponding bitmap colors.
+vdp_screen_table  equ >0800 ; 24 * 32 bytes with the defined characters.
+
+* The CPU RAM layout.
 world                       equ >2000 ; The live world.
 creature_addresses          equ >2800 ; Three 0-terminated lists: monsters, plain butterflies, diamond butterflies.
-creature_directions         equ >2900 ; Corresponding directions.
+creature_directions         equ >2a00 ; Corresponding directions.
 
-falling_bomb_addresses      equ >2a00
-falling_lit_bomb1_addresses equ >2a80
-falling_lit_bomb2_addresses equ >2ac0
-falling_diamond_addresses   equ >2b00
-falling_rock_addresses      equ >2c00
+falling_object_list         equ >2c00
+explosion_list              equ >2e00
 
-dust_explosion_addresses    equ >2d00
-diamond_explosion_addresses equ >2e00
+high_score                  equ >2efe
 
-* Slow workspaces.
-util_workspace              equ >2f60
-collectables_workspace      equ >2f80 ; Also the main workspace.
+* Workspaces.
+main_workspace              equ >8300          ; We don't need r13-r15 here.
+player_workspace            equ >8320
+physics_workspace           equ >8340
+creatures_workspace         equ >8360
+rendering_workspace         equ >8380
+explosions_workspace        equ >83a0          ; A slower workspace.
+collectables_workspace      equ main_workspace ; We can still use r13-r15 here.
+sound_workspace             equ >83c0
+util_workspace              equ >83e0
 
-* Fast workspaces in scratch pad RAM.
-player_workspace            equ >8300
-physics_workspace           equ >8320
-motion_workspace            equ >8340
-rendering_workspace         equ >8360
-explosions_workspace        equ >8380
-sound_workspace             equ >83a0
-gpllnk_workspace            equ >83e0 ; >83f0 later on contains code.
+fast_code                   equ >83ec          ; Dangerously overlapping with
+                                               ; the util workspace.
 
-fast_code                   equ >83f0
-
-* Register offsets relative to register base addresses.
-calling_r0  equ >0000
-calling_r1  equ >0002
-calling_r2  equ >0004
-calling_r3  equ >0006
-calling_r4  equ >0008
-calling_r5  equ >000a
-calling_r6  equ >000c
-calling_r7  equ >000e
-calling_r8  equ >0010
-calling_r9  equ >0012
-calling_r10 equ >0014
-
-* VDP >0000: character pattern definitions.
-* VDP >0800: screen.
-* VDP >2000: character color definitions.
-
-* Main program.
-    lwpi collectables_workspace
-    b    @main
-
-* Empty block.
-high_score
-    data >0000
-
-xf00a
-    data >0000 ; Unused.
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-
-    copy "util.asm"
-
-    copy "sound_data.asm"
-    copy "util2_data.asm"
-    copy "rendering_data.asm"
-    copy "initialization_data.asm"
-    copy "title_screen_data.asm"
-    copy "game_screen_data.asm"
-    copy "player_data.asm"
-    copy "physics_data.asm"
-    copy "creatures_data.asm"
-
-    copy "player.asm"
-    copy "physics.asm"
-    copy "creatures.asm"
-    copy "rendering.asm"
-    copy "explosions.asm"
-    copy "creatures0.asm"
-    copy "collectables.asm"
-    copy "sound.asm"
-    copy "util2.asm"
+    copy "util_definitions.asm"
 
 * The main entry point of the application.
 main
+    ; The main code block, with subsequent screens.
+    lwpi main_workspace
     copy "initialization.asm"
     copy "alpha_lock_screen.asm"
     copy "title_screen.asm"
     copy "game_screen.asm"
 
-    copy "workspaces.asm"
+    ; Functions and subroutines.
+    copy "player.asm"
+    copy "physics.asm"
+    copy "creatures.asm"
+    copy "rendering.asm"
+    copy "explosions.asm"
+    copy "collectables.asm"
+    copy "sound.asm"
+    copy "util.asm"

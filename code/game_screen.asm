@@ -26,6 +26,9 @@ world_definition_bombs_offset    equ 2
 world_definition_diamonds_offset equ 4
 world_definition_time_offset     equ 6
 
+* The magic value that identifies a world defintion.
+magic equ >454c                ;
+
 * Block: decompress the world and play the game.
 *        Continue to the same world, the mext world, or the alpha lock screen
 *        at the end.
@@ -34,14 +37,14 @@ world_definition_time_offset     equ 6
 * LOCAL  r6:  the required number of diamonds.
 * LOCAL  r7:  the remaining time.
 * LOCAL  r8:  the current score.
-* IN     r9:  the world definition offset.
-* LOCAL  r10: the number of lives.
-* STATIC @high_score: the global high score.
+* LOCAL  r9:  the number of lives.
+* SATTIC r10: the world number.
+* STATIC r11: the high score.
 
 * Start the world with a clean score and number of lives.
 start_world
     clr  r8                    ; Clear the score.
-    li   r10, >0005            ; Initialize the number of lives.
+    li   r9, >0005             ; Initialize the number of lives.
 
 * Start the world with the same score and number of lives.
 restart_world
@@ -56,12 +59,15 @@ restart_world
     li   r2, >0019
     blwp @vmbw
 
-    mov  r9, r3                ; Get initial values from the world definition.
-    ai   r3, world_definitions + world_definition_bombs_offset
-    mov  *r3+, r4              ; Get the initial number of bombs.
-    clr  r5                    ; Clear the initial number of diamonds.
-    mov  *r3+, r6              ; Get the required number of diamonds.
-    mov  *r3+, r7              ; Get the provided time.
+    mov  r10, r0                ; Set the GROM start address for the world definition.
+    sla  r0, grom_world_definition_size_shift
+    ai   r0, grom_world_definitions + world_definition_bombs_offset
+    .grmwa r0
+
+    .grmrd r4                  ; Get the initial number of bombs.
+    clr    r5                  ; Clear the initial number of diamonds.
+    .grmrd r6                  ; Get the required number of diamonds.
+    .grmrd r7                  ; Get the provided time.
 
     mov  r4, r0                ; Display the number of bombs.
     blwp @draw_decimal
@@ -79,13 +85,13 @@ restart_world
     blwp @draw_decimal
     data >0839
     li   r0, >081b             ; Display the screen number.
-    mov  r9, r1
-    srl  r1, 2
+    mov  r10, r1
+    sla  r1, 8
     ai   r1, >a100
     blwp @vsbw
     li   r0, >083b             ; Draw the number of spare lives.
     li   r1, heart_character
-    mov  r10, r2
+    mov  r9, r2
 draw_lives_loop
     dec  r2
     jeq  draw_lives_loop_exit
@@ -99,7 +105,7 @@ draw_lives_loop_exit
 
 * Initialize the world.
     li   r0, world             ; Initialize the start of the live world with
-    li   r1, >5858             ; border objects, to avoid the header.
+    li   r1, solid | (solid / 256) ; border objects, to avoid the header.
     li   r2, >0008
 initialize_border_loop
     mov  r1, *r0+
@@ -107,24 +113,19 @@ initialize_border_loop
     jne  initialize_border_loop
 
 uncompress_world_loop
-    movb *r3, r1               ; Expand the first nibble to an object.
-    andi r1, >f000
-    srl  r1, 1
-    movb r1, *r0+
-    movb *r3+, r1              ; Expand the second nibble to an object.
-    andi r1, >0f00
-    sla  r1, 3
-    movb r1, *r0+
+    movb @grmrd, r1            ; Get the world data.
+    movb r1, r2                ; Expand the first nibble to an object.
+    andi r2, >f000
+    srl  r2, 1
+    movb r2, *r0+
+    movb r1, r2                ; Expand the second nibble to an object.
+    andi r2, >0f00
+    sla  r2, 3
+    movb r2, *r0+
     ci   r0, world+world_size  ; Loop until we've reached the end of the world.
     jne  uncompress_world_loop
 
-    li   r2, creature_addresses
-    bl   @collect_creature_addresses ; Find all monsters.
-    data monster
-    bl   @collect_creature_addresses ; Find all plain butterflies.
-    data plain_butterfly
-    bl   @collect_creature_addresses ; Find all diamond butterflies.
-    data diamond_butterfly
+    blwp  @initialize_creatures  ; Find all creatures in the world.
 
     li   r0, world + world_width ; Find the player in the world.
     li   r1, dust
@@ -139,7 +140,7 @@ find_player_loop
     movb r1, *r0
 
     blwp @queue_random_speech
-    data >0000
+    data start_phrases
 
 * The main game loop.
 game_loop
@@ -165,10 +166,7 @@ game_wait_loop
     c    r5, r6                ; Did we just reach the required number of diamonds?
     jne  game_check_redo
 
-    li   r0, >0187             ; Flash the screen back to black.
-    movb r0, @vdpwa
-    swpb r0
-    movb r0, @vdpwa
+    .vdpwr 7, >01              ; Flash the screen back to black.
 
 * Check the keyboard.
 game_check_redo
@@ -179,7 +177,7 @@ game_check_redo
     tb   6
     jeq  game_check_back
     blwp @play_sounds          ; Then return to this world screen.
-    data >0030
+    data key_sound
     b    @start_world
 
 game_check_back
@@ -190,7 +188,7 @@ game_check_back
     tb   6
     jeq  game_check_quit
     blwp @play_sounds          ; Then return to the title screen.
-    data >0030
+    data key_sound
     b    @alpha_lock_screen
 
 game_check_quit
@@ -201,22 +199,22 @@ game_check_quit
     jeq  game_check_space
     blwp *r12                  ; Then quit.
 
-game_check_space
-    tb   5                     ; Is space depressed?
-    jeq  game_check_enter
-    blwp @play_sounds          ; Then pause.
-    data >0030
-
-game_check_space_up_loop
-    tb   5                     ; Wait until space is released.
-    jne  game_check_space_up_loop
-
-game_check_space_down_loop
-    tb   5                     ; Wait until space is pressed again.
-    jeq  game_check_space_down_loop
-
 game_check_enter
-    tb   4                     ; Is enter depressed?
+    tb   5                     ; Is enter depressed?
+    jeq  game_check_space
+    blwp @play_sounds          ; Then pause.
+    data key_sound
+
+game_check_enter_up_loop
+    tb   5                     ; Wait until enter is released.
+    jne  game_check_enter_up_loop
+
+game_check_enter_down_loop
+    tb   5                     ; Wait until enter is pressed again.
+    jeq  game_check_enter_down_loop
+
+game_check_space
+    tb   4                     ; Is space depressed?
     jne  leave_world
 
 * Check the time.
@@ -234,21 +232,21 @@ update_time
     movb r1, *r0
 
     blwp @queue_random_speech
-    data >0022
+    data out_of_time_phrases
     blwp @queue_sound
-    data >0017
+    data out_of_time_sound
 
 not_out_of_time
-    ci   r7, >0064             ; Is the remaining time getting low?
+    ci   r7, 100               ; Is the remaining time getting low?
     jne  continue_game_loop
 
     blwp @queue_random_speech  ; Then say something.
-    data >001c
+    data almost_out_of_time_phrases
     blwp @queue_sound
-    data >002b
+    data almost_out_of_time_sound
 
 continue_game_loop
-    b    @game_loop
+    jmp  game_loop
 
 out_of_time
     ci   r7, >ffce             ; Are we way out of time?
@@ -256,18 +254,18 @@ out_of_time
 
 leave_world
     blwp @play_sounds
-    data >0030
+    data key_sound
 
     c    r5, r6                ; Do we have the required number of diamonds?
     jhe  add_bombs_bonus_loop
 
-    dec  r10                   ; Decrement the number of lives.
+    dec  r9                    ; Decrement the number of lives.
     jne  same_world            ; Continue if we have lives left.
-    c    r8, @high_score       ; Did we beat the high score?
+    c    r8, r11               ; Did we beat the high score?
     jl   continue_alpha_lock_screen
-    mov  r8, @high_score       ; Update the high score.
+    mov  r8, r11               ; Update the high score.
     blwp @play_sounds
-    data >003c
+    data high_score_sound
 
 continue_alpha_lock_screen
     b    @alpha_lock_screen
@@ -279,12 +277,12 @@ add_bombs_bonus_loop
     mov  r4, r0                ; Display the number.
     blwp @draw_decimal
     data >0825
-    ai   r8, >0064             ; Increment the score by 100.
+    ai   r8, 100               ; Increment the score.
     mov  r8, r0                ; Display the score.
     blwp @draw_decimal
     data >0839
     blwp @play_sounds
-    data >0087
+    data bomb_bonus_sound
     jmp  add_bombs_bonus_loop
 
 * Add a bonus for the unused time.
@@ -299,22 +297,25 @@ add_time_bonus_loop
     blwp @draw_decimal
     data >0839
     blwp @play_sounds
-    data >00a7
+    data time_bonus_sound
     jmp  add_time_bonus_loop
 
 * Advance to the next world.
 next_world
-    ai   r9, >0400             ; Increment the world offset.
-    mov  @world_definitions(r9), r0
+    inc  r10                    ; Increment the world number.
+
+    mov  r10, r0                ; Compute the world definition GROM address.
+    sla  r0, grom_world_definition_size_shift
+    ai   r0, grom_world_definitions
+
+    .grmwa r0                  ; Check the magic header value.
+    .grmrd r0
     ci   r0, magic             ; Is it a valid world definition?
     jeq  same_world
-    clr  r9                    ; Otherwise return to the first world.
+    clr  r10                    ; Otherwise return to the first world.
 
 * Transition to a fresh world.
 same_world
     blwp @play_sounds
-    data >00ad
+    data next_world_sound
     b    @restart_world
-
-* Empty block.
-    data >0000                 ; Unused.

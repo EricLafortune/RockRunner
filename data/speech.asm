@@ -26,224 +26,211 @@
 ;         word = offset into the speech phrase definitions.
 ;         ...
 
-random_speech_definitions
-x32a0
+start_phrases
     data >0004 ; Start.
     data >0003
-    data >0006
-    data >000a
-    data >000e
+    data start_phrase_1
+    data start_phrase_2
+    data start_phrase_3
 
-x32aa
+not_moving_phrases
     data >000a ; Player not moving for some time.
     data >0007
-    data >0012
-    data >0016
-    data >001c
-    data >0022
-    data >0028
-    data >002e
-    data >0034
+    data not_moving_phrase_1
+    data not_moving_phrase_2
+    data not_moving_phrase_3
+    data not_moving_phrase_4
+    data not_moving_phrase_5
+    data not_moving_phrase_6
+    data not_moving_phrase_7
 
-x32bc
+almost_out_of_time_phrases
     data >0001 ; Almost out of time.
     data >0001
-    data >003e
+    data almost_out_of_time_phrase_1
 
-x32c2
+out_of_time_phrases
     data >0002 ; Out of time.
     data >0002
-    data >0044
-    data >004e
+    data out_of_time_phrase_1
+    data out_of_time_phrase_2
 
-x32ca
+collected_diamonds_phrases
     data >0004 ; Collected the required number of diamonds.
     data >0004
-    data >0056
-    data >005a
-    data >0060
-    data >0066
+    data collected_diamonds_phrase_1
+    data collected_diamonds_phrase_2
+    data collected_diamonds_phrase_3
+    data collected_diamonds_phrase_4
 
-x32d6
+died_phrases
     data >000d ; Died.
     data >000d
-    data >006c
-    data >0070
-    data >0074
-    data >0078
-    data >007c
-    data >0080
-    data >0084
-    data >0088
-    data >008e
-    data >0094
-    data >009c
-    data >00a4
-    data >00ac
-
-x32f4
-    data >0000 ; Unused.
-    data >0000
-    data >0000
-    data >0000
-    data >0000
-    data >0000
+    data died_phrase_1
+    data died_phrase_2
+    data died_phrase_3
+    data died_phrase_4
+    data died_phrase_5
+    data died_phrase_6
+    data died_phrase_7
+    data died_phrase_8
+    data died_phrase_9
+    data died_phrase_10
+    data died_phrase_11
+    data died_phrase_12
+    data died_phrase_13
 
 ; A speech phrase definition is a sequence of words:
 ;     ...   = speech phrase data.
 ;     >0000 = terminating zero for the data.
 
-speech_definitions
-x3300
+first_try_phrase
     data >2bd7
     data >6fbb
     data >0000
 
-x3306
+start_phrase_1
     data >2ffc
     data >0000
 
-x330a
+start_phrase_2
     data >637c
     data >0000
 
-x330e
+start_phrase_3
     data >56b3
     data >0000
 
-x3312
+not_moving_phrase_1
     data >351a
     data >0000
 
-x3316
+not_moving_phrase_2
     data >1e54
     data >4c41
     data >0000
 
-x331c
+not_moving_phrase_3
     data >2ffc
     data >4c41
     data >0000
 
-x3322
+not_moving_phrase_4
     data >46df
     data >4c41
     data >0000
 
-x3328
+not_moving_phrase_5
     data >78f4
     data >76b0
     data >0000
 
-x332e
+not_moving_phrase_6
     data >77bc
     data >4ada
     data >0000
 
-x3334
+not_moving_phrase_7
     data >71be
     data >556e
     data >6489
     data >4fe5
     data >0000
 
-x333e
+almost_out_of_time_phrase_1
     data >5093
     data >3757
     data >0000
 
-x3344
+out_of_time_phrase_1
     data >7e4d
     data >6e69
     data >3a32
     data >739f
     data >0000
 
-x334e
+out_of_time_phrase_2
     data >3c4f
     data >6e69
     data >3e78
     data >0000
 
-x3356
+collected_diamonds_phrase_1
     data >30fa
     data >0000
 
-x335a
+collected_diamonds_phrase_2
     data >7717
     data >253e
     data >0000
 
-x3360
+collected_diamonds_phrase_3
     data >5bfb
     data >1fcd
     data >0000
 
-x3366
+collected_diamonds_phrase_4
     data >4959
     data >5bfb
     data >0000
 
-x336c
+died_phrase_1
     data >71f4
     data >0000
 
-x3370
+died_phrase_2
     data >61c6
     data >0000
 
-x3374
+died_phrase_3
     data >3571
     data >0000
 
-x3378
+died_phrase_4
     data >3148
     data >0000
 
-x337c
+died_phrase_5
     data >49a5
     data >0000
 
-x3380
+died_phrase_6
     data >700f
     data >0000
 
-x3384
+died_phrase_7
     data >77e9
     data >0000
 
-x3388
+died_phrase_8
     data >4b7d
     data >3c4f
     data >0000
 
-x338e
+died_phrase_9
     data >4642
     data >4642
     data >0000
 
-x3394
+died_phrase_10
     data >78ab
     data >556e
     data >71be
     data >0000
 
-x339c
+died_phrase_11
     data >3793
     data >3f2f
     data >67b6
     data >0000
 
-x33a4
+died_phrase_12
     data >1c48
     data >1c48
     data >4ee0
     data >0000
 
-x33ac
+died_phrase_13
     data >71be
     data >775c
     data >360a
-
-silence_definition
-    data >0000

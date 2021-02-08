@@ -22,16 +22,28 @@
 * incrementally scrolling if necessary to keep the player in view.
 ******************************************************************************
 
+* Function: initialize the screen position.
+* STATIC r0: screen y position.
+* STATIC r1: screen x position.
+initialize_screen_position
+    data rendering_workspace
+    data !
+
+!   li   r0, >000a
+    li   r1, >0018
+    rtwp
+
 * Function: draw the objects, and scroll the screen if necessary.
 * STATIC r0:      screen y position.
 * STATIC r1:      screen x position.
 * IN     main r8: player y position.
 * IN     main r9: player x position.
-draw_world_code
-    li   r2, >4048
-    movb r2, @vdpwa
-    swpb r2
-    movb r2, @vdpwa
+draw_world
+    data rendering_workspace
+    data !
+
+!   li   r2, >4840             ; Start writing on the third row of the screen (>0840).
+    .vdpwa r2
     li   r8, vdpwd             ; Cache the vdpwd address.
     mov  r0, r2                ; Compute the offset of the first object: world + y * world_width + x.
     sla  r2, 6
