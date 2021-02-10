@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <romset>
    <resources>
-      <rom id="romimage"  file="rom"/>
-      <rom id="gromimage" file="grom"/>
+      <rom id="romimage"  file="romc.bin"/>
+      <rom id="gromimage" file="romg.bin"/>
    </resources>
    <configuration>
       <!-- We're using 8K GROM chips. -->
